@@ -1,0 +1,63 @@
+~ Daniel Worsnup's MiniOodle Prime Number Checker
+~
+~ Description: Reads positive integers from stdin until a 0 is entered.
+~	Prints 0 if the number is not prime or 1 if the number is prime
+~
+~ Warning: gets slowish when checking primes close to the
+~	32-bit signed int limit
+~
+~ Primes to check:
+~  - 100003
+~  - 1000003
+~  - 2000000011
+~  - 2147483629 (largest signed 32-bit prime)
+~
+class IsPrime is
+	n:int
+	half:int
+	i:int
+	quot:int
+	isprime:boolean
+	
+	start() is
+	begin
+		n := in.readint()
+		loop while n > 0
+			isprime := true
+			
+			if n = 1 then
+				isprime := false
+			else
+				if n > 2 then
+					~ Handle all even numbers at once
+					~ Since there is no modulus operator, we have to multiply the
+					~	quotient by the divisor and make sure it equals the dividend
+					quot := n / 2
+					if quot * 2 = n then
+						isprime := false
+					else
+						~ Divide from 3 to the halfway point again checking "remainders"
+						i := 3
+						half := n / 2 + 1
+						loop while (half >= i) and isprime
+							quot := n / i
+							if quot * i = n then
+								isprime := false
+							end if
+						
+							i := i + 2
+						end loop
+					end if
+				end if
+			end if
+			
+			if isprime then
+				out.writeint(1)
+			else
+				out.writeint(0)
+			end if
+			
+			n := in.readint()
+		end loop
+	end start
+end IsPrime

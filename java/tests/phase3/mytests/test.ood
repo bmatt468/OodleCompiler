@@ -1,0 +1,14 @@
+class test is
+
+  b1: boolean
+  b2: boolean
+  i1: int
+  
+  start() is
+  begin
+  b1 := b2
+  b1 := i1
+    
+  end start
+  
+end test

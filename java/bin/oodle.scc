@@ -1,0 +1,200 @@
+Package com.bju.cps450;
+
+Helpers
+
+  tab                 = 9;
+  line_feed           = 10;
+  carriage_return     = 13;
+  space               = ' ';
+  single_quote        = ''';
+  double_quote        = '"';
+  letter              = [['a'..'z'] + ['A'..'Z']];
+  octal               = ['0'..'7'];
+  digit               = ['0'..'9'];
+  escape              = '\' ( 't' | 'f' | 'n' | 'r' | '*' | '\' | double_quote | octal octal octal );
+  printable           = [0..127];
+  not_lf_or_cr        = [printable - [line_feed + carriage_return]];
+  end_of_line         = (line_feed | carriage_return | carriage_return line_feed);
+
+Tokens
+
+  newline              = end_of_line;
+  comment              = '~' not_lf_or_cr*;
+  whitespace           = (tab | space)*;
+  continuation         = '_' end_of_line;
+  
+  integer_literal      = ('-' digit+ | digit+);
+  float_literal		   = (('-' digit+ '.' digit+) | (digit+ '.' digit+));
+  
+  string_literal       = double_quote ([not_lf_or_cr - [double_quote + '\']] | escape)* double_quote;
+  unterminated_string  = double_quote ([not_lf_or_cr - [double_quote + '\']] | escape)*;
+  illegal_string       = double_quote ([not_lf_or_cr - double_quote])* double_quote;
+  
+  boolean              = 'boolean'; 
+  begin                = 'begin'; 
+  classkey             = 'class'; 
+  else                 = 'else'; 
+  end                  = 'end'; 
+  false                = 'false'; 
+  from                 = 'from'; 
+  if                   = 'if'; 
+  inherits             = 'inherits'; 
+  int                  = 'int'; 
+  is                   = 'is'; 
+  loop                 = 'loop'; 
+  me                   = 'me'; 
+  new                  = 'new'; 
+  not                  = 'not'; 
+  null                 = 'null'; 
+  string               = 'string'; 
+  then                 = 'then'; 
+  true                 = 'true'; 
+  while                = 'while';
+  and                  = 'and';
+  or                   = 'or';
+  duck				   = 'duck';
+  float 			   = 'float';
+  
+  concatenate          = '&'; 
+  plus                 = '+'; 
+  minus                = '-'; 
+  multiply             = '*';
+  divide               = '/';
+  greater              = '>';
+  greater_equal        = '>=';
+  equals               = '=';
+  assignment           = ':=';
+  l_paren              = '(';
+  r_paren              = ')';
+  l_bracket            = '[';
+  r_bracket            = ']';
+  comma                = ',';
+  semicolon            = ';';
+  colon                = ':';
+  dot                  = '.';
+  
+  identifier           = ('_' | letter) (letter | digit | '_')*;
+  
+  unknown_character    = printable;
+
+Ignored Tokens
+
+  comment, whitespace, continuation;
+  
+Productions
+
+  classes               = newlines? class_definition classes_tail* T.newline*;
+  
+  classes_tail          = newlines class_definition;
+  
+  newlines              = T.newline+;
+  
+  class_definition      = T.classkey [begin_id]:T.identifier inherits_clause? T.is newlines
+                          variable_declarations*
+                          method_declarations*
+                          T.end [end_id]:T.identifier;
+                        
+  inherits_clause       = T.inherits T.from T.identifier;
+                     
+  variable_declarations = T.identifier type_declaration? initializer? newlines;
+  
+  type_declaration      = T.colon type;
+  
+  type                  = {boolean} T.boolean
+                        | {int}     T.int
+                        | {string}  T.string
+                        | {class}   T.identifier
+                        | {array}   type T.l_bracket expression? T.r_bracket
+                        | {duck} 	T.duck
+                        | {float}   T.float;
+  
+  initializer           = T.assignment expression;
+  
+  method_declarations   = [begin_id]:T.identifier T.l_paren argument_list? T.r_paren type_declaration? T.is [begin_newlines]:newlines
+						  variable_declarations*
+						  T.begin [middle_newlines]:newlines
+						  statement_list?
+						  T.end [end_id]:T.identifier [end_newlines]:newlines;
+  
+  argument_list         = argument argument_list_tail*;
+  
+  argument_list_tail    = T.semicolon argument;
+  
+  argument              = T.identifier type_declaration;
+  
+  statement_list        = statement statement_list_tail* newlines;
+  
+  statement_list_tail   = newlines statement;
+  
+  statement             = {if_statement}     if_statement
+                        | {loop_statement}   loop_statement
+                        | {call_statement}   call_statement
+                        | {assign_statement} assignment_statement;
+                        
+  if_statement          = [begin_if]:T.if expression T.then newlines
+                          statement_list?
+                          else_statement?
+                          T.end [end_if]:T.if;
+  
+  else_statement        = T.else newlines
+                          statement_list?;
+                          
+  loop_statement        = [begin_loop]:T.loop T.while expression newlines
+                          statement_list?
+                          T.end [end_loop]:T.loop;
+                          
+  call_statement        = expression_dot? T.identifier T.l_paren expression_list? T.r_paren;
+  
+  assignment_statement  = T.identifier array* T.assignment expression;
+                        
+  expression_list       = expression expression_list_tail*;
+  
+  expression_list_tail  = T.comma expression;
+  
+  expression            = expression_lvl8;
+  
+  expression_lvl8       = {or}    expression_lvl8 T.or expression_lvl7
+                        | {other} expression_lvl7;
+                        
+  expression_lvl7       = {and}   expression_lvl7 T.and expression_lvl6
+                        | {other} expression_lvl6;
+                        
+  expression_lvl6       = {equals}   [first]:expression_lvl5 T.equals [second]:expression_lvl5
+                        | {greater}  [first]:expression_lvl5 T.greater [second]:expression_lvl5
+                        | {gt_equal} [first]:expression_lvl5 T.greater_equal [second]:expression_lvl5
+                        | {other}    expression_lvl5;
+                        
+  expression_lvl5       = {concat} expression_lvl5 T.concatenate expression_lvl4
+                        | {other}  expression_lvl4;
+                        
+  expression_lvl4       = {add}      expression_lvl4 T.plus expression_lvl3
+                        | {subtract} expression_lvl4 T.minus expression_lvl3
+                        | {other}    expression_lvl3;
+                        
+  expression_lvl3       = {mult}   expression_lvl3 T.multiply expression_lvl2
+                        | {divide} expression_lvl3 T.divide expression_lvl2
+                        | {other}  expression_lvl2;
+                        
+  expression_lvl2       = {pos}   T.plus expression_lvl2
+                        | {neg}   T.minus expression_lvl2
+                        | {not}   T.not expression_lvl2
+                        | {other} expression_lvl1;
+                        
+  expression_lvl1       = {identifier} T.identifier 
+                        | {string}     T.string_literal 
+                        | {integer}    T.integer_literal 
+                        | {true}       T.true 
+                        | {false}      T.false 
+                        | {null}       T.null 
+                        | {me}         T.me
+                        | {new}        T.new type
+                        | {call}       expression_dot? T.identifier T.l_paren expression_list? T.r_paren
+                        | {array}      T.identifier array+
+                        | {paren}      T.l_paren expression T.r_paren
+                        | {float}	   T.float_literal;
+  
+  expression_dot        = expression_lvl1 T.dot;
+  
+  array                 = T.l_bracket expression T.r_bracket;
+  
+  

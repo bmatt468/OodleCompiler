@@ -1,0 +1,34 @@
+class Parent is
+
+foo() is
+begin
+out.writeln("fail")
+end foo 
+
+foo2() is
+begin
+out.writeln("success")
+end foo2 
+end Parent
+
+class Child inherits from Parent is 
+
+foo() is
+begin
+out.writeln("success")
+end foo 
+
+foo3() is
+begin
+end foo3
+end Child
+
+class ATest1 is
+
+  start() is
+    c := new Child
+    p := new Parent
+  begin
+   c.foo3()
+  end start
+end ATest1
